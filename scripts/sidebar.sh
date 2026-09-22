@@ -90,7 +90,7 @@ focus() {
   ensure "$1"
   local p
   p="$(sidebar_panes -t "$1" | head -1)"
-  [ -n "$p" ] && tmux select-pane -t "$p"
+  if [ -n "$p" ]; then tmux select-pane -t "$p"; fi
 }
 
 switch_to() {
@@ -109,7 +109,7 @@ click() {
   rows="$(tmux show -pqv -t "$pane" @sidebar_rows)"
   local name
   name="$(printf '%s' "$rows" | tr '\t' '\n' | sed -n "$((y - 1))p")"
-  [ -n "$name" ] && switch_to "$name" "$client"
+  if [ -n "$name" ]; then switch_to "$name" "$client"; fi
 }
 
 next_waiting() {
