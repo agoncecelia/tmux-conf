@@ -27,6 +27,7 @@ Requires tmux 3.3+, `bash`, and `python3` (sidebar layout math).
 | `scripts/sidebar.sh` | Sidebar lifecycle and renderer |
 | `scripts/layout.py` | Rescales window layouts when the sidebar opens/closes/resizes |
 | `scripts/agent-seen.sh` | Clears an agent's "waiting" state when its window is focused |
+| `scripts/claude-tmux.sh` | Claude Code lifecycle hook (state, bell, notification) |
 | `scripts/claude-status-segment.sh` | Claude state segment for `status-right` |
 | `scripts/codex-notify.sh` | Codex `notify` hook |
 | `scripts/theme-patch.sh` | Re-applies status segments after catppuccin rebuilds them |
@@ -68,7 +69,23 @@ Sessions whose name starts with `_` (e.g. the scratch popup) are skipped.
 
 ## Agent integration
 
-- Claude state is driven by `~/.claude/hooks/claude-tmux.sh`, which sets the `@claude_state` window option (`working` / `waiting` / `idle`).
+- Claude state is driven by `scripts/claude-tmux.sh`, which sets the `@claude_state` window option (`working` / `waiting` / `idle`) and, when it's your turn, rings the pane bell and sends a desktop notification via `terminal-notifier` (optional, `brew install terminal-notifier`). Link it and register it for each event in `~/.claude/settings.json`:
+
+  ```sh
+  mkdir -p ~/.claude/hooks
+  ln -sf ~/.config/tmux/scripts/claude-tmux.sh ~/.claude/hooks/claude-tmux.sh
+  ```
+
+  ```json
+  "hooks": {
+    "SessionStart":     [{ "hooks": [{ "type": "command", "command": "~/.claude/hooks/claude-tmux.sh SessionStart" }] }],
+    "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "~/.claude/hooks/claude-tmux.sh UserPromptSubmit" }] }],
+    "PostToolUse":      [{ "hooks": [{ "type": "command", "command": "~/.claude/hooks/claude-tmux.sh PostToolUse" }] }],
+    "Notification":     [{ "hooks": [{ "type": "command", "command": "~/.claude/hooks/claude-tmux.sh Notification" }] }],
+    "Stop":             [{ "hooks": [{ "type": "command", "command": "~/.claude/hooks/claude-tmux.sh Stop" }] }],
+    "SessionEnd":       [{ "hooks": [{ "type": "command", "command": "~/.claude/hooks/claude-tmux.sh SessionEnd" }] }]
+  }
+  ```
 - Codex needs `notify = ["<home>/.config/tmux/scripts/codex-notify.sh"]` in `~/.codex/config.toml`.
 
 Errors are logged to `~/.local/state/tmux/sidebar.log`.
