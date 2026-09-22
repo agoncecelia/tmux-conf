@@ -6,7 +6,7 @@ exec 2>>"$log_dir/sidebar.log"
 
 log() { printf '%s [scratch] %s\n' "$(date '+%F %T')" "$*" >&2; }
 
-dir="${1:-$HOME}"
+dir="$PWD"
 [ -d "$dir" ] || { log "dir '$dir' missing, using HOME"; dir="$HOME"; }
 sess=_scratch
 
