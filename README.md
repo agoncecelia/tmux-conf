@@ -49,7 +49,7 @@ Prefix is `C-a`.
 | `prefix m` | toggle mouse |
 | `prefix C` | Claude popup in the current directory |
 | `prefix D` | `git diff HEAD` popup |
-| `prefix g` | toggle scratch session popup |
+| `prefix g` | toggle scratch session popup (follows current pane dir) |
 | `C-l` | clear screen and scrollback |
 
 ## Session sidebar
