@@ -9,7 +9,7 @@ git clone https://github.com/agoncecelia/tmux-conf ~/.config/tmux
 tmux
 ```
 
-TPM and plugins install automatically on first launch into `plugins/` (gitignored). Remove any `~/.tmux.conf`, since tmux reads it before `~/.config/tmux/tmux.conf`.
+TPM and plugins install automatically on first launch into `plugins/` (gitignored). catppuccin is pinned to `v2.3.1`; to change the pin, delete `plugins/tmux` and press `prefix I`. Remove any `~/.tmux.conf`, since tmux reads it before `~/.config/tmux/tmux.conf`.
 
 Requires tmux 3.3+, `bash`, and `python3` (sidebar layout math).
 
@@ -21,16 +21,13 @@ Requires tmux 3.3+, `bash`, and `python3` (sidebar layout math).
 | `conf/options.conf` | Terminal, history, indexing, activity/focus options |
 | `conf/keys.conf` | Prefix and navigation bindings |
 | `conf/copy.conf` | Vi copy mode, clipboard, mouse |
-| `conf/agents.conf` | Claude/diff/scratch popups, agent "seen" hooks |
+| `conf/agents.conf` | Claude/diff/scratch popups, `agent-seen` alias and hooks |
 | `conf/sidebar.conf` | Session sidebar hooks and bindings |
-| `conf/plugins.conf` | TPM, catppuccin (frappe), resurrect, continuum |
+| `conf/plugins.conf` | TPM, catppuccin v2 (frappe), resurrect, continuum, status line |
 | `scripts/sidebar.sh` | Sidebar lifecycle and renderer |
 | `scripts/layout.py` | Rescales window layouts when the sidebar opens/closes/resizes |
-| `scripts/agent-seen.sh` | Clears an agent's "waiting" state when its window is focused |
 | `scripts/claude-tmux.sh` | Claude Code lifecycle hook (state, bell, notification) |
-| `scripts/claude-status-segment.sh` | Claude state segment for `status-right` |
 | `scripts/codex-notify.sh` | Codex `notify` hook |
-| `scripts/theme-patch.sh` | Re-applies status segments after catppuccin rebuilds them |
 
 ## Keys
 
@@ -50,7 +47,7 @@ Prefix is `C-a`.
 | `prefix C` | Claude popup in the current directory |
 | `prefix D` | `git diff HEAD` popup |
 | `prefix g` | toggle scratch session popup (follows current pane dir) |
-| `C-l` | clear screen and scrollback |
+| `prefix C-k` | clear screen and scrollback |
 
 ## Session sidebar
 
@@ -86,6 +83,8 @@ Sessions whose name starts with `_` (e.g. the scratch popup) are skipped.
     "SessionEnd":       [{ "hooks": [{ "type": "command", "command": "~/.claude/hooks/claude-tmux.sh SessionEnd" }] }]
   }
   ```
+- Focusing a window (keyboard, mouse or session switch) clears its `waiting` state via the `agent-seen` command alias.
+- Claude panes are restored with `claude --continue` by tmux-resurrect.
 - Codex needs `notify = ["<home>/.config/tmux/scripts/codex-notify.sh"]` in `~/.codex/config.toml`.
 
-Errors are logged to `~/.local/state/tmux/sidebar.log`.
+Errors are logged to `~/.local/state/tmux/sidebar.log` (rotated to `sidebar.log.1` past 1 MB on attach).

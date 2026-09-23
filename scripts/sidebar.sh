@@ -3,8 +3,12 @@
 self="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 layout="$(dirname "$self")/layout.py"
 log_dir="${XDG_STATE_HOME:-$HOME/.local/state}/tmux"
+log_file="$log_dir/sidebar.log"
 mkdir -p "$log_dir"
-exec 2>>"$log_dir/sidebar.log"
+if [ "${1:-}" = ensure-all ] && [ "$(wc -c <"$log_file" 2>/dev/null || echo 0)" -gt 1048576 ]; then
+  mv -f "$log_file" "$log_file.1" 2>>"$log_file"
+fi
+exec 2>>"$log_file"
 
 cmd="${1:-}"
 [ $# -gt 0 ] && shift
@@ -14,16 +18,21 @@ log() { printf '%s [%s] %s\n' "$(date '+%F %T')" "$cmd" "$*" >&2; }
 enabled() { [ "$(tmux show -gqv @sidebar_enabled)" = 1 ]; }
 width() { local w; w="$(tmux show -gqv @sidebar_width)"; echo "${w:-26}"; }
 sidebar_panes() { tmux list-panes "$@" -F '#{?#{@sidebar},#{pane_id},}' | grep .; }
+wake() { tmux send-keys -t "$1" -l . || log "wake $1 failed"; }
 
 ensure() {
-  local win="$1" sess zoomed W H before pane target
+  local win="$1" sess zoomed W H before pane target existing
   [ -z "$win" ] && return 0
   enabled || return 0
   IFS='|' read -r sess zoomed W H before <<<"$(tmux display -p -t "$win" '#{session_name}|#{window_zoomed_flag}|#{window_width}|#{window_height}|#{window_layout}')"
   [ -z "$sess" ] && { log "window $win not found"; return 1; }
   case "$sess" in _*) return 0 ;; esac
   [ "$zoomed" = 1 ] && return 0
-  [ -n "$(sidebar_panes -t "$win")" ] && return 0
+  existing="$(sidebar_panes -t "$win")"
+  if [ -n "$existing" ]; then
+    for pane in $existing; do wake "$pane"; done
+    return 0
+  fi
   pane="$(tmux split-window -hbfd -l "$(width)" -t "$win" -P -F '#{pane_id}' "exec '$self' render")" \
     || { log "split-window failed for $win"; return 1; }
   tmux set -p -t "$pane" @sidebar 1
@@ -130,7 +139,7 @@ next_waiting() {
 render() {
   local RED=$'\e[38;2;48;52;70;48;2;231;130;132m' YEL=$'\e[38;2;229;200;144m' DIM=$'\e[38;2;115;121;148m'
   local BOLD=$'\e[1m' REV=$'\e[7m' RST=$'\e[0m' EL=$'\e[K'
-  local cursor=0 prev="" prev_rows="" key seq last_fit_w=""
+  local cursor=0 prev="" prev_rows="" key seq last_fit_w="" timeout
 
   tmux set -p -t "$TMUX_PANE" @sidebar 1
   tmux select-pane -t "$TMUX_PANE" -T sidebar
@@ -144,7 +153,9 @@ render() {
     enabled || exit 0
     [ "$panes" = 1 ] && exit 0
 
+    timeout=10
     if [ "$visible" = 1 ]; then
+      timeout=1
       if [ "$w" != "$(width)" ] && [ "$w" != "$last_fit_w" ]; then
         last_fit_w="$w"
         "$self" fit "$(tmux display -p -t "$TMUX_PANE" '#{window_id}')"
@@ -189,7 +200,7 @@ render() {
       fi
     fi
 
-    if read -rsn1 -t 1 key; then
+    if read -rsn1 -t "$timeout" key; then
       case "$key" in
         j) cursor=$((cursor + 1)) ;;
         k) cursor=$((cursor - 1)) ;;
