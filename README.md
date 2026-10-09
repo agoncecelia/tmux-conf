@@ -58,7 +58,7 @@ Prefix is `C-a`.
 | `prefix a` | jump to the next session where an agent is waiting |
 | click a session / `«` | switch to it / hide sidebar |
 
-Red row = Claude or Codex waiting for input, `◐` = working. Width: `set -g @sidebar_width 26`.
+Red row = Claude or Codex waiting for input, `◐` = working. Width: `%hidden SIDEBAR_WIDTH=26` in `conf/sidebar.conf`.
 
 The sidebar is created in every window up front (on attach and toggle) so switching windows doesn't resize panes. Opening it shrinks existing panes proportionally, closing it restores the previous layout (or grows panes proportionally if you changed it meanwhile), and window resizes re-fit it in one step.
 
