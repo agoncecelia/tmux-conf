@@ -20,9 +20,23 @@ width() { local w; w="$(tmux show -gqv @sidebar_width)"; echo "${w:-26}"; }
 sidebar_panes() { tmux list-panes "$@" -F '#{?#{@sidebar},#{pane_id},}' | grep .; }
 wake() { tmux send-keys -t "$1" -l . || log "wake $1 failed"; }
 
+with_lock() {
+  local ch="sidebar-$1" rc
+  shift
+  tmux wait-for -L "$ch" || { log "lock $ch failed"; return 1; }
+  "$@"
+  rc=$?
+  tmux wait-for -U "$ch" || log "unlock $ch failed"
+  return "$rc"
+}
+
 ensure() {
+  [ -z "$1" ] && return 0
+  with_lock "$1" ensure_window "$1"
+}
+
+ensure_window() {
   local win="$1" sess zoomed W H before pane target existing
-  [ -z "$win" ] && return 0
   enabled || return 0
   IFS='|' read -r sess zoomed W H before <<<"$(tmux display -p -t "$win" '#{session_name}|#{window_zoomed_flag}|#{window_width}|#{window_height}|#{window_layout}')"
   [ -z "$sess" ] && { log "window $win not found"; return 1; }
@@ -87,7 +101,7 @@ fit() {
 
 hide() {
   tmux set -g @sidebar_enabled 0
-  tmux list-panes -a -F '#{?#{@sidebar},#{pane_id}|#{window_id},}' | grep . | while IFS='|' read -r p w; do remove "$p" "$w"; done
+  tmux list-panes -a -F '#{?#{@sidebar},#{pane_id}|#{window_id},}' | grep . | while IFS='|' read -r p w; do with_lock "$w" remove "$p" "$w"; done
 }
 
 toggle() {
@@ -222,7 +236,7 @@ render() {
 case "$cmd" in
   ensure) ensure "$@" ;;
   ensure-all) ensure_all ;;
-  fit) fit "$@" ;;
+  fit) with_lock "$1" fit "$@" ;;
   toggle) toggle "$@" ;;
   hide) hide ;;
   focus) focus "$@" ;;
